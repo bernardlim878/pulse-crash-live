@@ -72,17 +72,23 @@ function publicState(isHost, ownPlayerId) {
   const current = room.round;
   const now = Date.now();
   const liveMultiplier = current?.phase === 'running' ? multiplierAt(current, now) : (current?.multiplier || 1);
+  const elapsedSeconds = current?.phase === 'running'
+    ? Math.max(0, (now - current.startedAt) / 1000)
+    : current?.phase === 'ended'
+      ? Math.log(current.crashedAt) / (0.15 * current.speedFactor)
+      : 0;
   const pool = current?.phase === 'running' ? current.pool : pendingPool();
   return {
     room: { name: room.name, code: room.code, inviteOpen: room.inviteOpen },
     phase: current?.phase || 'countdown',
     roundId: current?.id || 0,
     secondsLeft: current?.countdownEndsAt ? Math.max(0, (current.countdownEndsAt - now) / 1000) : null,
+    elapsedSeconds: Number(elapsedSeconds.toFixed(3)),
     multiplier: Number(liveMultiplier.toFixed(2)),
     crashedAt: current?.phase === 'ended' ? current.crashedAt : null,
     pool,
     speedFactor: Number(speedFor(pool).toFixed(2)),
-    roundSpeed: current?.phase === 'running' ? current.speedFactor : null,
+    roundSpeed: ['running', 'ended'].includes(current?.phase) ? current.speedFactor : null,
     autoPaused: room.pauseAfterRound,
     hostCoins: isHost ? room.hostCoins : null,
     pendingRequests: isHost ? room.requests.filter((item) => item.status === 'pending') : undefined,
@@ -125,7 +131,7 @@ function tick() {
     broadcast();
     return;
   }
-  if (current.phase === 'countdown' && now - (current.lastBroadcastAt || 0) >= 500) {
+  if (current.phase === 'countdown' && now - (current.lastBroadcastAt || 0) >= 1000) {
     current.lastBroadcastAt = now;
     broadcast();
     return;
