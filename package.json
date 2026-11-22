@@ -1,0 +1,14 @@
+{
+  "name": "pulse-crash-live-room",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A social crash game with play-only coins and a host-managed room.",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
+
