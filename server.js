@@ -23,7 +23,7 @@ const room = {
   pauseAfterRound: false,
   players: new Map(),
   requests: [],
-  history: [1.68, 2.32, 2.04, 4.59, 1.34, 2.05, 4.52, 1.54],
+  history: [],
   nextRequestId: 1,
   round: null
 };
@@ -94,7 +94,7 @@ function publicState(isHost, ownPlayerId) {
     pendingRequests: isHost ? room.requests.filter((item) => item.status === 'pending') : undefined,
     pendingCount: room.requests.filter((item) => item.status === 'pending').length,
     myRequest: ownPlayerId ? [...room.requests].reverse().find((item) => item.playerId === ownPlayerId) || null : null,
-    history: room.history.slice(-8).reverse(),
+    history: room.history.slice(-20),
     players: [...room.players.values()].map((player) => ({
       id: player.id,
       name: player.name,
@@ -151,7 +151,13 @@ function tick() {
       current.phase = 'ended';
       current.crashedAt = current.crashAt;
       current.multiplier = current.crashAt;
-      room.history.push(current.crashAt);
+      room.history.push({
+        roundId: current.id,
+        multiplier: current.crashAt,
+        speedFactor: current.speedFactor,
+        durationSeconds: Math.log(current.crashAt) / (0.15 * current.speedFactor),
+        recordedAt: new Date(now).toISOString()
+      });
       room.history = room.history.slice(-20);
       current.nextRoundAt = now + 3500;
       broadcast();

@@ -38,7 +38,11 @@
     .room.ready { display:block }
     .layout { display:grid;grid-template-columns:minmax(0,1fr) 306px;gap:12px }
     .main { min-width:0 }
-    .history { height:48px;display:flex;align-items:center;gap:18px;padding:0 13px;margin-bottom:12px;border-radius:12px;background:#303638;overflow:hidden;white-space:nowrap }
+    .history { height:48px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 10px 0 13px;margin-bottom:12px;border-radius:12px;background:#303638;overflow:hidden;white-space:nowrap }
+    .history-list { min-width:0;flex:1;display:flex;align-items:center;gap:18px;overflow-x:auto;scrollbar-width:none }
+    .history-list::-webkit-scrollbar { display:none }
+    .history-empty { color:#8e9d9c;font-size:10px }
+    .history-button { flex:0 0 auto;padding:7px 9px;border:1px solid #465153;border-radius:8px;background:#252b2d;color:#d4e0de;font-size:10px;font-weight:850 }
     .history-item { display:flex;align-items:center;gap:7px;color:#9eaaaa;font-size:10px }
     .history-item b { display:block;color:var(--green);font-size:12px }
     .history-item.bad b { color:var(--orange) }
@@ -113,13 +117,30 @@
     .modal input { width:100%;min-height:42px;padding:0 10px;border:1px solid #465254;border-radius:9px;background:#21282a;color:white }
     .modal-actions { display:flex;gap:8px;margin-top:13px }
     .modal-actions button { flex:1;min-height:39px;border:0;border-radius:9px;font-weight:850 }
+    .record-modal { width:min(100%,860px);max-height:90vh;display:flex;flex-direction:column;gap:13px;padding:18px;border-radius:16px;background:#293235 }
+    .record-modal-head { display:flex;align-items:flex-start;justify-content:space-between;gap:12px }
+    .record-modal-head h2 { margin:0 0 4px;font-size:19px }
+    .record-modal-head p { margin:0;color:#9fadaa;font-size:11px }
+    .record-close { width:34px;height:34px;border:0;border-radius:8px;background:#3a4446;color:#e7efed;font-size:20px }
+    .record-columns { min-height:0;display:grid;grid-template-columns:minmax(180px,245px) minmax(0,1fr);gap:12px }
+    .record-list { display:grid;align-content:start;gap:7px;max-height:62vh;overflow:auto;padding-right:3px }
+    .record-item { padding:9px 10px;border:1px solid #3d484a;border-radius:9px;background:#232a2c;color:#d9e2e1;text-align:left;font-size:11px;font-weight:800 }
+    .record-item.active { border-color:var(--green);background:#203630;color:#8ce9bc }
+    .record-item small { display:block;margin-top:3px;color:#92a09f;font-size:9px;font-weight:600 }
+    .record-preview { min-width:0;padding:11px;border-radius:11px;background:#232a2c }
+    .record-preview h3 { margin:1px 0 8px;font-size:12px }
+    .record-preview svg { display:block;width:100%;height:250px }
+    .record-preview .area { fill:url(#record-area-fill) }
+    .record-preview .axis { font-size:10px }
+    .record-meta { margin-top:4px;color:#aebbb9;font-size:10px }
+    .record-empty { padding:12px;border-radius:9px;background:#232a2c;color:#9fadaa;font-size:11px }
     .cancel { background:#3a4446;color:#d1dbda }
     .send { background:var(--green);color:#052f20 }
     [hidden] { display:none!important }
     @media(max-width:900px) { .layout { grid-template-columns:minmax(0,1fr) 270px } }
     @media(max-width:680px) {
       .topbar { gap:8px;padding:9px 10px }.menu { width:34px;height:34px }.brand { font-size:17px }.room-tag { display:none }.top-actions { gap:5px }.coin-reserve small { display:none }.coin-reserve { padding:8px;font-size:10px }.host-open { display:none }.invite-button { min-height:34px;padding:0 8px;font-size:10px }
-      .wrap { padding:9px }.layout { grid-template-columns:1fr }.chart { height:300px;min-height:280px }.controls { grid-template-columns:1fr 1fr }.controls .control:last-child { grid-column:span 2 }.host-tools { grid-template-columns:1fr 1fr }.host-tools .host-tool:last-child { grid-column:span 2 }.side { padding:12px }.history { gap:11px }
+      .wrap { padding:9px }.layout { grid-template-columns:1fr }.chart { height:300px;min-height:280px }.controls { grid-template-columns:1fr 1fr }.controls .control:last-child { grid-column:span 2 }.host-tools { grid-template-columns:1fr 1fr }.host-tools .host-tool:last-child { grid-column:span 2 }.side { padding:12px }.history-list { gap:11px }.history-button { padding:6px 7px;font-size:9px }.record-columns { grid-template-columns:1fr }.record-list { max-height:145px;grid-template-columns:repeat(2,minmax(0,1fr)) }.record-preview svg { height:180px }
     }
   </style>
 </head>
@@ -153,7 +174,7 @@
     <section id="room" class="room" aria-label="Crash room">
       <div class="layout">
         <main class="main">
-          <div id="history" class="history" aria-label="Recent system results"></div>
+          <div class="history" aria-label="Recent system results"><div id="history-items" class="history-list"></div><button id="records-open" class="history-button" type="button">Round records</button></div>
           <section class="chart" aria-label="System generated crash graph">
             <div class="chart-top"><span>Round <b id="round-id">65626</b></span><span class="system-tag"><b>● SYSTEM</b> · result locked</span></div>
             <svg class="plot" viewBox="0 0 800 320" preserveAspectRatio="none" role="img" aria-label="Live crash multiplier graph">
@@ -202,10 +223,16 @@
   <div id="request-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="request-title">
     <form id="request-form" class="modal"><h2 id="request-title">Request play coins</h2><p>Your request will go to the room owner for approval.</p><div class="field"><label for="request-amount">Coin amount</label><input id="request-amount" type="number" min="1" max="5000" step="50" value="500"></div><div class="modal-actions"><button id="cancel-request" class="cancel" type="button">Cancel</button><button class="send" type="submit">Send request</button></div><div id="request-error" class="error" role="alert"></div></form>
   </div>
+  <div id="records-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="records-title">
+    <section class="record-modal">
+      <div class="record-modal-head"><div><h2 id="records-title">Round records</h2><p>Choose a finished round to inspect its crash path.</p></div><button id="records-close" class="record-close" type="button" aria-label="Close round records">×</button></div>
+      <div class="record-columns"><div id="record-list" class="record-list"></div><div class="record-preview"><h3 id="record-title">Select a round record</h3><svg viewBox="0 0 800 320" preserveAspectRatio="none" role="img" aria-label="Selected historical crash path"><defs><linearGradient id="record-area-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#28dc8b" stop-opacity=".27"></stop><stop offset="1" stop-color="#28dc8b" stop-opacity=".015"></stop></linearGradient></defs><line class="gridline" x1="20" y1="286" x2="790" y2="286"></line><line class="gridline" x1="20" y1="234" x2="790" y2="234"></line><line class="gridline" x1="20" y1="181" x2="790" y2="181"></line><line class="gridline" x1="20" y1="129" x2="790" y2="129"></line><line class="gridline" x1="20" y1="76" x2="790" y2="76"></line><text class="axis" x="-8" y="290">1.0×</text><text class="axis" x="-8" y="238">2.0×</text><text class="axis" x="-8" y="185">3.0×</text><text class="axis" x="-8" y="133">4.0×</text><text class="axis" x="-8" y="80">5.0×</text><text class="axis" x="16" y="313">0s</text><text class="axis" x="208" y="313">3s</text><text class="axis" x="401" y="313">6s</text><text class="axis" x="593" y="313">9s</text><text class="axis" x="752" y="313">12s</text><path id="record-area" class="area" fill="url(#record-area-fill)" d="M20 286 L20 286 Z"></path><path id="record-curve" class="curve" d="M20 286"></path><circle id="record-cursor" class="cursor" cx="20" cy="286" r="8"></circle></svg><div id="record-meta" class="record-meta"></div></div></div>
+    </section>
+  </div>
   <script>
     (() => {
       const $ = (selector) => document.querySelector(selector);
-      const state = { isHost:false, joined:false, playerId:null, eventSource:null, requestPending:false, betPlaced:false };
+      const state = { isHost:false, joined:false, playerId:null, eventSource:null, requestPending:false, betPlaced:false, latestHistory:[], historyKey:null };
       const format = (value) => Number(value || 0).toLocaleString('en-US');
       const roomParam = new URLSearchParams(location.search).get('room') || 'MOON26';
       $('#room-code').value = roomParam;
@@ -232,13 +259,61 @@
         if (!isHost) $('#guest-room-title').textContent = 'Room players';
       };
       const drawHistory = (history) => {
-        const node = $('#history'); node.replaceChildren();
-        history.forEach((value) => {
+        const node = $('#history-items'); node.replaceChildren();
+        const recent = history.slice(-8);
+        if (!recent.length) { const empty = document.createElement('span'); empty.className = 'history-empty'; empty.textContent = 'No finished rounds yet'; node.append(empty); return; }
+        recent.forEach((record) => {
+          const value = Number(typeof record === 'number' ? record : record.multiplier);
           const item = document.createElement('div'); item.className = 'history-item' + (value < 1.6 ? ' bad' : '');
           const dot = document.createElement('i'); dot.className = 'dot';
-          const label = document.createElement('span'); label.innerHTML = `<b>${Number(value).toFixed(2)}×</b>`;
+          const label = document.createElement('span'); const result = document.createElement('b'); result.textContent = `${value.toFixed(2)}×`; label.append(result);
+          if (record.roundId) item.title = `Round ${record.roundId}`;
           item.append(dot,label); node.append(item);
         });
+        node.scrollLeft = node.scrollWidth;
+      };
+      const drawRecords = (history) => {
+        const list = $('#record-list'); list.replaceChildren();
+        if (!history.length) {
+          const empty = document.createElement('div'); empty.className = 'record-empty'; empty.textContent = 'No finished rounds yet. Completed system rounds will appear here.'; list.append(empty);
+          $('#record-title').textContent = 'No round selected';
+          $('#record-meta').textContent = 'Round paths are recorded after each crash.';
+          $('#record-curve').setAttribute('d','M20 286'); $('#record-area').setAttribute('d','M20 286 L20 286 Z');
+          $('#record-cursor').setAttribute('cx',20); $('#record-cursor').setAttribute('cy',286);
+          return;
+        }
+        const selectRecord = (record, index) => {
+          list.querySelectorAll('.record-item').forEach((button) => button.classList.toggle('active',Number(button.dataset.recordIndex) === index));
+          const multiplier = Number(typeof record === 'number' ? record : record.multiplier);
+          const speed = Number(record.speedFactor || 1);
+          const duration = Number(record.durationSeconds || Math.log(multiplier) / (0.15 * speed));
+          $('#record-title').textContent = record.roundId ? `Round ${record.roundId}` : 'Previous round';
+          $('#record-meta').textContent = `Crashed at ${multiplier.toFixed(2)}× · ${duration.toFixed(1)} seconds · ${speed.toFixed(1)}× speed`;
+          const steps = Math.max(1,Math.ceil(duration * 16));
+          const points = [];
+          for (let step=0; step<=steps; step++) {
+            const time = duration * step / steps;
+            const value = step === steps ? multiplier : Math.exp(0.15 * speed * time);
+            const plotted = Math.max(1,Math.min(5,value));
+            points.push({x:20 + Math.min(12,time) / 12 * 770,y:286 - (plotted - 1) / 4 * 210});
+          }
+          const line = points.map((point,pointIndex) => `${pointIndex ? 'L' : 'M'}${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(' ');
+          const areaLine = points.map((point) => `L${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(' ');
+          const last = points[points.length - 1];
+          $('#record-curve').setAttribute('d',line);
+          $('#record-area').setAttribute('d',`M20 286 ${areaLine} L${last.x.toFixed(1)} 286 Z`);
+          $('#record-cursor').setAttribute('cx',last.x); $('#record-cursor').setAttribute('cy',last.y);
+        };
+        history.forEach((record,index) => {
+          const value = Number(typeof record === 'number' ? record : record.multiplier);
+          const speed = Number(record.speedFactor || 1);
+          const duration = Number(record.durationSeconds || Math.log(value) / (0.15 * speed));
+          const button = document.createElement('button'); button.type = 'button'; button.className = 'record-item'; button.dataset.recordIndex = String(index);
+          button.append(document.createTextNode(`${record.roundId ? `Round ${record.roundId}` : 'Previous round'} · ${value.toFixed(2)}×`));
+          const detail = document.createElement('small'); detail.textContent = `${duration.toFixed(1)}s · ${speed.toFixed(1)}× speed`; button.append(detail);
+          button.addEventListener('click',() => selectRecord(record,index)); list.append(button);
+        });
+        selectRecord(history[history.length - 1],history.length - 1);
       };
       const personRow = (player, hostView) => {
         const row = document.createElement('div'); row.className = 'player-row';
@@ -326,7 +401,15 @@
           else if (data.myRequest?.status === 'declined') $('#request-button').textContent = 'Request declined · try again';
           else $('#request-button').textContent = 'Request more coins from host';
         }
-        if (data.history) drawHistory(data.history);
+        if (Array.isArray(data.history)) {
+          state.latestHistory = data.history;
+          const historyKey = JSON.stringify(data.history);
+          if (historyKey !== state.historyKey) {
+            state.historyKey = historyKey;
+            drawHistory(data.history);
+            drawRecords(data.history);
+          }
+        }
         if (data.players) drawPlayers(data.players);
         if (data.isHost && data.pendingRequests) drawRequests(data.pendingRequests);
         $('#invite-status').textContent = data.room.inviteOpen ? 'Room is open' : 'Invites paused';
@@ -426,6 +509,10 @@
       });
       $('#request-button').addEventListener('click',() => { $('#request-error').textContent=''; $('#request-modal').classList.add('open'); });
       $('#cancel-request').addEventListener('click',() => $('#request-modal').classList.remove('open'));
+      $('#records-open').addEventListener('click',() => { drawRecords(state.latestHistory); $('#records-modal').classList.add('open'); $('#records-close').focus(); });
+      $('#records-close').addEventListener('click',() => $('#records-modal').classList.remove('open'));
+      $('#records-modal').addEventListener('click',(event) => { if (event.target === $('#records-modal')) $('#records-modal').classList.remove('open'); });
+      document.addEventListener('keydown',(event) => { if (event.key === 'Escape') $('#records-modal').classList.remove('open'); });
       $('#request-form').addEventListener('submit',async(event) => {
         event.preventDefault(); $('#request-error').textContent='';
         try { await api('/api/coin-request',{amount:Number($('#request-amount').value)}); state.requestPending=true; $('#request-modal').classList.remove('open'); $('#request-button').textContent='Request sent · waiting for host'; $('#request-button').disabled=true; showToast('Coin request sent to the host.'); }
