@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#202628">
+  <title>Pulse Crash · Moonlight Lounge</title>
+  <style>
+    :root { color-scheme: dark; --bg:#202628; --panel:#292f31; --panel2:#242a2c; --panel3:#343c3e; --ink:#f4f7f6; --muted:#9ba8a8; --line:#3a4446; --green:#28dc8b; --orange:#ff9b24; --red:#f35578; --blue:#82b4ff; }
+    * { box-sizing:border-box }
+    body { margin:0; background:var(--bg); color:var(--ink); font:500 14px/1.38 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif }
+    button,input { font:inherit }
+    button { cursor:pointer }
+    button:focus-visible,input:focus-visible { outline:3px solid var(--blue); outline-offset:2px }
+    .topbar { min-height:64px; display:flex; align-items:center; gap:15px; padding:10px 18px; background:#242a2c; border-bottom:1px solid #343b3d }
+    .menu { width:40px;height:40px;display:grid;place-items:center;border-radius:10px;background:#343b3d;color:#bfcbca;font-size:19px }
+    .brand { display:flex;align-items:center;gap:9px;font-size:21px;font-weight:850;letter-spacing:-.05em;white-space:nowrap }
+    .brand-mark { width:29px;height:29px;display:grid;place-items:center;border-radius:9px 9px 15px 9px;background:var(--green);color:#062e1f;transform:rotate(-8deg) }
+    .room-tag { margin-left:8px;padding-left:18px;border-left:1px solid #414a4c;color:var(--muted);font-size:12px }
+    .top-actions { margin-left:auto;display:flex;align-items:center;gap:9px }
+    .coin-reserve,.wallet { padding:9px 11px;border:1px solid #3a4345;border-radius:10px;background:#282e30;font-size:12px;font-weight:800;white-space:nowrap }
+    .coin-reserve small { color:var(--muted);font-weight:500;margin-left:5px }
+    .invite-button,.primary { min-height:39px;padding:0 13px;border:0;border-radius:9px;background:var(--green);color:#07301f;font-weight:850 }
+    .host-open { padding:9px 11px;border:1px solid #3a4345;border-radius:9px;color:#d6e1df;background:#30383a;font-size:11px;font-weight:800 }
+    .wrap { max-width:1600px;margin:0 auto;padding:16px }
+    .join-card { width:min(100%,430px);margin:55px auto;padding:24px;border-radius:18px;background:var(--panel) }
+    h1 { margin:0 0 8px;font-size:25px;letter-spacing:-.04em }
+    .sub { color:var(--muted);font-size:13px;margin:0 0 19px }
+    .field { margin:12px 0 }
+    .field label { display:block;margin-bottom:6px;font-size:11px;font-weight:800;color:#bdc7c6 }
+    .field input { width:100%;min-height:43px;padding:0 11px;border:1px solid #424d4f;border-radius:9px;color:var(--ink);background:#22282a }
+    .join-card .primary { width:100%;margin-top:5px }
+    .secondary-link { display:block;margin:17px auto 0;border:0;background:none;color:#aebbb9;text-decoration:underline;text-underline-offset:3px;font-size:11px }
+    .host-login { display:none;margin-top:18px;padding-top:16px;border-top:1px solid var(--line) }
+    .host-login.open { display:block }
+    .error { min-height:17px;margin-top:8px;color:#ff8a9d;font-size:11px }
+    .room { display:none }
+    .room.ready { display:block }
+    .layout { display:grid;grid-template-columns:minmax(0,1fr) 306px;gap:12px }
+    .main { min-width:0 }
+    .history { height:48px;display:flex;align-items:center;gap:18px;padding:0 13px;margin-bottom:12px;border-radius:12px;background:#303638;overflow:hidden;white-space:nowrap }
+    .history-item { display:flex;align-items:center;gap:7px;color:#9eaaaa;font-size:10px }
+    .history-item b { display:block;color:var(--green);font-size:12px }
+    .history-item.bad b { color:var(--orange) }
+    .dot { width:8px;height:8px;border-radius:50%;background:var(--green) }
+    .history-item.bad .dot { background:var(--orange) }
+    .chart { position:relative;height:clamp(340px,39vw,455px);min-height:310px;overflow:hidden;background:#292f31 }
+    .chart-top { position:absolute;z-index:2;top:12px;left:16px;right:16px;display:flex;align-items:center;justify-content:space-between;gap:9px;color:#a6b3b3;font-size:11px }
+    .system-tag { padding:5px 8px;border-radius:7px;background:#333b3c;color:#b4c3c1 }
+    .system-tag b { color:var(--green) }
+    .plot { position:absolute;left:40px;right:15px;top:56px;bottom:38px;width:calc(100% - 55px);height:calc(100% - 94px);overflow:visible }
+    .gridline { stroke:#41494a;stroke-width:1 }
+    .axis { fill:#879495;font:600 11px Inter,system-ui,sans-serif }
+    .curve { fill:none;stroke:#42e7a4;stroke-width:4;stroke-linecap:round;filter:drop-shadow(0 0 7px rgba(40,220,139,.25)) }
+    .area { fill:url(#area-fill);opacity:.8 }
+    .cursor { fill:#42e7a4;stroke:#194d38;stroke-width:5 }
+    .countdown,.live-multiplier { position:absolute;top:48%;left:50%;transform:translate(-50%,-50%);text-align:center;z-index:1 }
+    .count-number { font-size:clamp(45px,6vw,70px);font-weight:850;line-height:1;letter-spacing:-.06em }
+    .count-label { margin-top:8px;color:#91a0a1;font-size:12px;font-weight:750 }
+    .live-multiplier { display:none;color:var(--green);font-size:clamp(50px,7vw,76px);font-weight:900;letter-spacing:-.06em }
+    .ended { display:none;margin-top:8px;color:#ff7186;font-size:12px;font-weight:850;letter-spacing:.08em }
+    .watermark { position:absolute;right:20px;bottom:43px;color:#41494a;font-size:21px;font-weight:900;letter-spacing:-.04em }
+    .speed-row { display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 4px 1px;color:#a8b5b5;font-size:11px }
+    .speed-row strong { color:var(--ink) }
+    .speed { color:var(--green);font-weight:900 }
+    .speed-note { color:#899796;font-size:10px;padding:0 4px;margin-bottom:11px }
+    .panel { padding:13px;border-radius:14px;background:#303638 }
+    .controls { display:grid;grid-template-columns:1fr 1fr 1.1fr;gap:9px }
+    .control label { display:block;margin:0 0 7px 2px;color:#bdc7c6;font-size:11px;font-weight:800 }
+    .inputbox { min-height:42px;display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:9px;background:#282e30 }
+    .inputbox input { width:100%;min-width:0;border:0;outline:0;background:transparent;color:var(--ink);font-weight:800 }
+    .coin { width:23px;height:23px;display:grid;place-items:center;border-radius:50%;background:var(--green);color:#103a29;font-size:11px;font-weight:900 }
+    .micro { border:0;border-radius:7px;padding:7px 9px;background:#3a4345;color:#e9f0ef;font-size:11px;font-weight:800 }
+    .control .primary { width:100% }
+    .collect { width:100%;min-height:39px;border:0;border-radius:9px;background:#3a4345;color:#e8efee;font-weight:850 }
+    .collect:disabled { opacity:.55;cursor:default }
+    .request-coins { display:block;margin:7px auto 0;padding:2px;border:0;color:#b5c2c1;background:transparent;text-decoration:underline;text-underline-offset:3px;font-size:10px }
+    .host-tools { display:none;grid-template-columns:1fr 1fr 1fr;gap:9px }
+    .host-tools.show { display:grid }
+    .host-tool { min-height:70px;padding:9px;border-radius:10px;background:#282e30;color:#aebbbb;font-size:10px }
+    .host-tool b { display:block;margin:2px 0 6px;color:var(--ink);font-size:12px }
+    .host-tool button { border:0;border-radius:7px;padding:7px 8px;color:#e7efed;background:#3a4445;font-size:10px;font-weight:850 }
+    .note { margin-top:10px;color:#91a09f;font-size:10px }
+    .side { min-width:0;padding:13px 11px;border-radius:15px;background:#292f31 }
+    .side-head { display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 3px 12px;border-bottom:1px solid #394244;font-size:13px;font-weight:850 }
+    .badge { padding:4px 7px;border-radius:7px;background:rgba(40,220,139,.13);color:var(--green);font-size:10px }
+    .requests,.players { display:grid;gap:8px;padding-top:9px }
+    .request,.player { padding:10px;border-radius:10px;background:#23292b }
+    .person { display:flex;align-items:center;gap:8px }
+    .avatar { width:30px;height:30px;flex:0 0 30px;display:grid;place-items:center;border-radius:50%;background:#584921;color:#ffe3a1;font-size:11px;font-weight:900 }
+    .person-name { min-width:0;flex:1 }
+    .person-name b { display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px }
+    .person-name small { display:block;margin-top:2px;color:#91a09f;font-size:9px }
+    .amount { color:var(--green);font-weight:900;font-size:11px;white-space:nowrap }
+    .actions { display:grid;grid-template-columns:1fr .7fr;gap:6px;margin-top:8px }
+    .actions button { min-height:31px;border:0;border-radius:7px;font-size:10px;font-weight:850 }
+    .grant { background:var(--green);color:#05301f }
+    .decline { background:#384143;color:#dce5e3 }
+    .status { margin-top:7px;color:#c2d0ce;font-size:10px }
+    .player-row { display:flex;align-items:center;gap:8px;padding:9px 1px;border-bottom:1px solid #343d3f }
+    .player-row:last-child { border-bottom:0 }
+    .player-row b { font-size:11px }
+    .player-row span { margin-left:auto;color:#9eaaaa;font-size:10px }
+    .chat { padding:10px 2px;border-bottom:1px solid #343d3f;color:#aab6b5;font-size:10px }
+    .chat b { color:#eef5f3 }
+    .toast { min-height:18px;margin-top:8px;color:#8ce9bc;font-size:10px }
+    .fineprint { margin-top:12px;color:#8e9d9c;font-size:10px }
+    .modal-backdrop { display:none;position:fixed;z-index:10;inset:0;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.65) }
+    .modal-backdrop.open { display:flex }
+    .modal { width:min(100%,360px);padding:20px;border-radius:16px;background:#293235 }
+    .modal h2 { margin:0 0 7px;font-size:19px }
+    .modal p { margin:0 0 14px;color:#9fadaa;font-size:12px }
+    .modal input { width:100%;min-height:42px;padding:0 10px;border:1px solid #465254;border-radius:9px;background:#21282a;color:white }
+    .modal-actions { display:flex;gap:8px;margin-top:13px }
+    .modal-actions button { flex:1;min-height:39px;border:0;border-radius:9px;font-weight:850 }
+    .cancel { background:#3a4446;color:#d1dbda }
+    .send { background:var(--green);color:#052f20 }
+    [hidden] { display:none!important }
+    @media(max-width:900px) { .layout { grid-template-columns:minmax(0,1fr) 270px } }
+    @media(max-width:680px) {
+      .topbar { gap:8px;padding:9px 10px }.menu { width:34px;height:34px }.brand { font-size:17px }.room-tag { display:none }.top-actions { gap:5px }.coin-reserve small { display:none }.coin-reserve { padding:8px;font-size:10px }.host-open { display:none }.invite-button { min-height:34px;padding:0 8px;font-size:10px }
+      .wrap { padding:9px }.layout { grid-template-columns:1fr }.chart { height:300px;min-height:280px }.controls { grid-template-columns:1fr 1fr }.controls .control:last-child { grid-column:span 2 }.host-tools { grid-template-columns:1fr 1fr }.host-tools .host-tool:last-child { grid-column:span 2 }.side { padding:12px }.history { gap:11px }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="menu" aria-hidden="true">☰</div>
+    <div class="brand"><span class="brand-mark">↗</span>Pulse Crash</div>
+    <div class="room-tag">Room · <strong id="room-name-top">Moonlight Lounge</strong> · <span id="room-code-top">MOON26</span></div>
+    <div class="top-actions">
+      <button id="invite-button" class="invite-button" hidden>Copy invite link</button>
+      <div id="host-reserve" class="coin-reserve" hidden>◉ <span id="host-coins">12,000</span><small>room coins</small></div>
+      <div id="player-wallet" class="wallet" hidden>◉ <span id="wallet">1,200</span> coins</div>
+      <button id="host-open" class="host-open" type="button">Host sign in</button>
+    </div>
+  </header>
+  <div class="wrap">
+    <section id="join-card" class="join-card">
+      <h1>Join Moonlight Lounge</h1>
+      <p class="sub">Enter the room code from your friend. Coins are for play only.</p>
+      <form id="join-form">
+        <div class="field"><label for="player-name">Your name</label><input id="player-name" maxlength="24" minlength="2" autocomplete="nickname" required placeholder="Choose a room name"></div>
+        <div class="field"><label for="room-code">Room code</label><input id="room-code" maxlength="20" value="MOON26" required></div>
+        <button class="primary" type="submit">Join room</button><div id="join-error" class="error" role="alert"></div>
+      </form>
+      <button id="show-host-login" class="secondary-link" type="button">I’m the room owner</button>
+      <form id="host-login" class="host-login">
+        <div class="field"><label for="host-passcode">Owner passcode</label><input id="host-passcode" type="password" autocomplete="current-password" minlength="16" required></div>
+        <button class="primary" type="submit">Open host console</button><div id="host-error" class="error" role="alert"></div>
+      </form>
+    </section>
+    <section id="room" class="room" aria-label="Crash room">
+      <div class="layout">
+        <main class="main">
+          <div id="history" class="history" aria-label="Recent system results"></div>
+          <section class="chart" aria-label="System generated crash graph">
+            <div class="chart-top"><span>Round <b id="round-id">65626</b></span><span class="system-tag"><b>● SYSTEM</b> · result locked</span></div>
+            <svg class="plot" viewBox="0 0 800 320" preserveAspectRatio="none" role="img" aria-label="Live crash multiplier graph">
+              <defs><linearGradient id="area-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#28dc8b" stop-opacity=".27"></stop><stop offset="1" stop-color="#28dc8b" stop-opacity=".015"></stop></linearGradient></defs>
+              <line class="gridline" x1="20" y1="286" x2="790" y2="286"></line><line class="gridline" x1="20" y1="212" x2="790" y2="212"></line><line class="gridline" x1="20" y1="138" x2="790" y2="138"></line><line class="gridline" x1="20" y1="64" x2="790" y2="64"></line>
+              <text class="axis" x="-8" y="290">1.0×</text><text class="axis" x="-8" y="216">1.2×</text><text class="axis" x="-8" y="142">1.5×</text><text class="axis" x="-8" y="68">1.7×</text>
+              <text class="axis" x="16" y="313">0.0s</text><text class="axis" x="208" y="313">2.5s</text><text class="axis" x="404" y="313">5.0s</text><text class="axis" x="598" y="313">7.5s</text><text class="axis" x="758" y="313">10.0s</text>
+              <path id="area" class="area" d="M20 286 L20 285 L790 64 L790 286 Z"></path><path id="curve" class="curve" d="M20 285 L790 64"></path><circle id="cursor" class="cursor" cx="20" cy="285" r="8"></circle>
+            </svg>
+            <div id="countdown" class="countdown"><div id="count-number" class="count-number">8.0s</div><div class="count-label">Next round in</div></div>
+            <div id="live-multiplier" class="live-multiplier">1.00×<div id="ended" class="ended"></div></div>
+            <div class="watermark">PULSE CRASH</div>
+          </section>
+          <div class="speed-row"><span>Round pool · <strong id="pool">0</strong> play coins</span><span>Crash speed · <b class="speed"><span id="speed-name">Slow</span> <span id="speed-factor">1.0×</span></b></span></div>
+          <div id="speed-note" class="speed-note">The pooled bet sets the animation speed when betting closes. The crash result is set independently.</div>
+          <section id="host-tools" class="panel host-tools" aria-label="Host controls">
+            <div class="host-tool">Room schedule<b id="round-status">Automatic rounds</b>15 second join window</div>
+            <div class="host-tool">Invite access<b id="invite-status">Room is open</b><button id="access-toggle" type="button">Pause invites</button></div>
+            <div class="host-tool">Round control<b>System sets the result</b><button id="pause-toggle" type="button">Pause after round</button></div>
+          </section>
+          <section id="player-controls" class="panel controls" aria-label="Player betting controls" hidden>
+            <div class="control"><label for="bet-amount">Play coin bet</label><div class="inputbox"><span class="coin">P</span><input id="bet-amount" type="number" min="1" step="10" value="100"><button id="half" class="micro" type="button">½</button><button id="double" class="micro" type="button">2×</button></div></div>
+            <div class="control"><label for="auto-collect">Auto collect at</label><div class="inputbox"><span>@</span><input id="auto-collect" type="number" min="1.01" step="0.1" value="2.00"><span>×</span></div></div>
+            <div class="control"><label>Your play coins</label><button id="bet-button" class="primary" type="button">Join next round</button><button id="cashout-button" class="collect" type="button" hidden>Collect score</button><button id="request-button" class="request-coins" type="button">Request more coins from host</button></div>
+          </section>
+          <div id="host-note" class="note" hidden>Host view: manage the room and coin requests. Crash outcomes are generated by the server and aren’t editable here.</div>
+          <div id="toast" class="toast" aria-live="polite"></div>
+          <div class="fineprint">Play coins have no cash value. They cannot be bought, withdrawn, exchanged, or redeemed.</div>
+        </main>
+        <aside id="host-side" class="side" hidden aria-label="Host activity">
+          <div class="side-head"><span>Coin requests</span><span id="request-count" class="badge">0 pending</span></div>
+          <div id="requests" class="requests"></div>
+          <div class="side-head" style="margin-top:12px"><span>Room players</span><span id="host-player-count" class="badge">0</span></div>
+          <div id="host-players" class="players"></div>
+        </aside>
+        <aside id="player-side" class="side" hidden aria-label="Player room activity">
+          <div class="side-head"><span id="guest-room-title">Room players</span><span id="guest-player-count" class="badge">0 online</span></div>
+          <div id="guest-players" class="players"></div>
+          <div class="side-head" style="margin-top:12px">Room chat</div>
+          <div class="chat"><b>Room host</b> · Welcome! Place your play coin bet before the countdown ends.</div>
+          <div class="chat"><b>System</b> · Higher pooled bets make the round animation faster.</div>
+        </aside>
+      </div>
+    </section>
+  </div>
+  <div id="request-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="request-title">
+    <form id="request-form" class="modal"><h2 id="request-title">Request play coins</h2><p>Your request will go to the room owner for approval.</p><div class="field"><label for="request-amount">Coin amount</label><input id="request-amount" type="number" min="1" max="5000" step="50" value="500"></div><div class="modal-actions"><button id="cancel-request" class="cancel" type="button">Cancel</button><button class="send" type="submit">Send request</button></div><div id="request-error" class="error" role="alert"></div></form>
+  </div>
+  <script>
+    (() => {
+      const $ = (selector) => document.querySelector(selector);
+      const state = { isHost:false, joined:false, playerId:null, eventSource:null, requestPending:false, betPlaced:false };
+      const format = (value) => Number(value || 0).toLocaleString('en-US');
+      const roomParam = new URLSearchParams(location.search).get('room') || 'MOON26';
+      $('#room-code').value = roomParam;
+      const showToast = (message, error = false) => { $('#toast').textContent = message; $('#toast').style.color = error ? '#ff8a9d' : '#8ce9bc'; };
+      const api = async (path, body = {}) => {
+        const response = await fetch(path, { method:'POST', headers:{'Content-Type':'application/json'}, credentials:'same-origin', body:JSON.stringify(body) });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'That action could not be completed.');
+        return result;
+      };
+      const setRole = (isHost) => {
+        state.isHost = isHost;
+        $('#join-card').hidden = true;
+        $('#room').classList.add('ready');
+        $('#host-reserve').hidden = !isHost;
+        $('#invite-button').hidden = !isHost;
+        $('#player-wallet').hidden = isHost;
+        $('#host-open').hidden = true;
+        $('#player-controls').hidden = isHost;
+        $('#host-tools').classList.toggle('show', isHost);
+        $('#host-note').hidden = !isHost;
+        $('#host-side').hidden = !isHost;
+        $('#player-side').hidden = isHost;
+        if (!isHost) $('#guest-room-title').textContent = 'Room players';
+      };
+      const drawHistory = (history) => {
+        const node = $('#history'); node.replaceChildren();
+        history.forEach((value) => {
+          const item = document.createElement('div'); item.className = 'history-item' + (value < 1.6 ? ' bad' : '');
+          const dot = document.createElement('i'); dot.className = 'dot';
+          const label = document.createElement('span'); label.innerHTML = `<b>${Number(value).toFixed(2)}×</b>`;
+          item.append(dot,label); node.append(item);
+        });
+      };
+      const personRow = (player, hostView) => {
+        const row = document.createElement('div'); row.className = 'player-row';
+        const avatar = document.createElement('div'); avatar.className = 'avatar'; avatar.textContent = (player.name || '?').slice(0,1).toUpperCase();
+        const name = document.createElement('b'); name.textContent = player.name + (player.isYou ? ' · you' : '');
+        const detail = document.createElement('span'); detail.textContent = player.cashoutAt ? `Collected ${player.cashoutAt.toFixed(2)}×` : player.bet ? `${format(player.bet)} bet` : `${format(player.coins)} coins`;
+        row.append(avatar,name,detail);
+        if (hostView) row.title = `${player.name}: ${format(player.coins)} play coins`;
+        return row;
+      };
+      const drawPlayers = (players) => {
+        const hostList = $('#host-players'); const guestList = $('#guest-players');
+        hostList.replaceChildren(); guestList.replaceChildren();
+        players.forEach((player) => { hostList.append(personRow(player,true)); guestList.append(personRow(player,false)); });
+        $('#host-player-count').textContent = `${players.length} online`;
+        $('#guest-player-count').textContent = `${players.length} online`;
+      };
+      const drawRequests = (requests) => {
+        const list = $('#requests'); list.replaceChildren();
+        $('#request-count').textContent = `${requests.length} pending`;
+        if (!requests.length) { const empty = document.createElement('div'); empty.className = 'note'; empty.textContent = 'No coin requests right now.'; list.append(empty); return; }
+        requests.forEach((request) => {
+          const card = document.createElement('div'); card.className = 'request';
+          const person = document.createElement('div'); person.className = 'person';
+          const avatar = document.createElement('div'); avatar.className = 'avatar'; avatar.textContent = request.playerName.slice(0,1).toUpperCase();
+          const info = document.createElement('div'); info.className = 'person-name';
+          const name = document.createElement('b'); name.textContent = request.playerName;
+          const note = document.createElement('small'); note.textContent = 'Requesting play coins';
+          info.append(name,note);
+          const amount = document.createElement('div'); amount.className = 'amount'; amount.textContent = `+${format(request.amount)}`;
+          person.append(avatar,info,amount);
+          const actions = document.createElement('div'); actions.className = 'actions';
+          const grant = document.createElement('button'); grant.className = 'grant'; grant.textContent = 'Grant coins'; grant.addEventListener('click', () => decideRequest(request.id,'grant',grant));
+          const decline = document.createElement('button'); decline.className = 'decline'; decline.textContent = 'Decline'; decline.addEventListener('click', () => decideRequest(request.id,'decline',decline));
+          actions.append(grant,decline); card.append(person,actions); list.append(card);
+        });
+      };
+      const decideRequest = async (id, decision, button) => {
+        button.disabled = true;
+        try { await api('/api/host/request-decision',{requestId:id,decision}); showToast(decision === 'grant' ? 'Play coins granted.' : 'Request declined.'); }
+        catch (error) { button.disabled = false; showToast(error.message,true); }
+      };
+      const refreshState = async () => {
+        const response = await fetch('/api/state',{credentials:'same-origin',cache:'no-store'});
+        const data = await response.json();
+        state.joined = data.joined;
+        state.playerId = data.playerId;
+        if (data.isHost) setRole(true);
+        else if (data.joined) setRole(false);
+        else return;
+        applyState(data);
+        connectEvents();
+      };
+      const connectEvents = () => {
+        if (state.eventSource) state.eventSource.close();
+        state.eventSource = new EventSource('/events',{withCredentials:true});
+        state.eventSource.addEventListener('room',(event) => {
+          const data = JSON.parse(event.data);
+          if (data.room) {
+            $('#room-name-top').textContent = data.room.name;
+            $('#room-code-top').textContent = data.room.code;
+            $('#room-code').value = data.room.code;
+          }
+          applyState(data);
+        });
+        state.eventSource.onerror = () => showToast('Reconnecting to the room…',true);
+      };
+      const applyState = (data) => {
+        $('#round-id').textContent = data.roundId;
+        $('#pool').textContent = format(data.pool);
+        $('#speed-factor').textContent = `${Number(data.speedFactor || 1).toFixed(1)}×`;
+        $('#speed-name').textContent = data.speedFactor < 1.45 ? 'Slow' : data.speedFactor < 2.15 ? 'Rising' : 'Fast';
+        if (data.isHost && data.hostCoins != null) $('#host-coins').textContent = format(data.hostCoins);
+        const you = data.players?.find((player) => player.isYou);
+        if (you) {
+          $('#wallet').textContent = format(you.coins);
+          state.betPlaced = you.bet > 0;
+          const active = you.bet > 0 && !you.cashoutAt && data.phase === 'running';
+          $('#cashout-button').hidden = !active;
+          $('#bet-button').hidden = data.phase !== 'countdown' || you.bet > 0;
+          state.requestPending = data.myRequest?.status === 'pending';
+          $('#request-button').disabled = state.requestPending;
+          if (data.myRequest?.status === 'pending') $('#request-button').textContent = `Request pending · ${format(data.myRequest.amount)}`;
+          else if (data.myRequest?.status === 'granted') $('#request-button').textContent = 'Coins granted · request again';
+          else if (data.myRequest?.status === 'declined') $('#request-button').textContent = 'Request declined · try again';
+          else $('#request-button').textContent = 'Request more coins from host';
+        }
+        if (data.history) drawHistory(data.history);
+        if (data.players) drawPlayers(data.players);
+        if (data.isHost && data.pendingRequests) drawRequests(data.pendingRequests);
+        $('#invite-status').textContent = data.room.inviteOpen ? 'Room is open' : 'Invites paused';
+        $('#access-toggle').textContent = data.room.inviteOpen ? 'Pause invites' : 'Reopen invites';
+        $('#round-status').textContent = data.autoPaused ? 'Paused after round' : 'Automatic rounds';
+        $('#pause-toggle').textContent = data.autoPaused ? 'Resume rounds' : 'Pause after round';
+        $('#ended').style.display = data.phase === 'ended' ? 'block' : 'none';
+        if (data.phase === 'ended') $('#ended').textContent = `Crashed at ${Number(data.crashedAt).toFixed(2)}×`;
+        $('#countdown').style.display = ['countdown','paused'].includes(data.phase) ? 'block' : 'none';
+        $('#live-multiplier').style.display = data.phase === 'running' || data.phase === 'ended' ? 'block' : 'none';
+        if (data.phase === 'running' || data.phase === 'ended') $('#live-multiplier').childNodes[0].textContent = `${Number(data.multiplier).toFixed(2)}×`;
+        if (data.phase === 'countdown') $('#count-number').textContent = `${Math.max(0,Number(data.secondsLeft || 0)).toFixed(1)}s`;
+        if (data.phase === 'paused') $('#count-number').textContent = 'PAUSED';
+        drawCurve(data);
+        $('#speed-note').textContent = data.phase === 'running'
+          ? `Animation speed locked at ${Number(data.roundSpeed).toFixed(1)}× for this round. The crash result was fixed before betting closed.`
+          : 'The pooled bet sets the animation speed when betting closes. The crash result is set independently.';
+      };
+      const drawCurve = (data) => {
+        const x = data.phase === 'running' ? Math.max(20,Math.min(780,20 + Math.log(Math.max(1,data.multiplier))*170)) : data.phase === 'ended' ? 780 : 20;
+        const y = data.phase === 'running' ? Math.max(68,286 - Math.log(Math.max(1,data.multiplier))*130) : data.phase === 'ended' ? 70 : 285;
+        $('#curve').setAttribute('d',`M20 285 Q${x*.55} ${Math.max(75,y-40)} ${x} ${y}`);
+        $('#area').setAttribute('d',`M20 286 L20 285 Q${x*.55} ${Math.max(75,y-40)} ${x} ${y} L${x} 286 Z`);
+        $('#cursor').setAttribute('cx',x); $('#cursor').setAttribute('cy',y);
+      };
+      $('#join-form').addEventListener('submit',async(event) => {
+        event.preventDefault(); $('#join-error').textContent='';
+        try {
+          await api('/api/join',{name:$('#player-name').value,roomCode:$('#room-code').value});
+          await refreshState();
+        } catch(error) { $('#join-error').textContent=error.message; }
+      });
+      $('#show-host-login').addEventListener('click',() => $('#host-login').classList.toggle('open'));
+      $('#host-open').addEventListener('click',() => { $('#host-login').classList.add('open'); $('#host-passcode').focus(); });
+      $('#host-login').addEventListener('submit',async(event) => {
+        event.preventDefault(); $('#host-error').textContent='';
+        try { await api('/api/host/login',{passcode:$('#host-passcode').value}); await refreshState(); }
+        catch(error) { $('#host-error').textContent=error.message; }
+      });
+      $('#invite-button').addEventListener('click',async() => {
+        const url = `${location.origin}/?room=${encodeURIComponent($('#room-code-top').textContent)}`;
+        try { await navigator.clipboard.writeText(url); showToast('Invite link copied.'); }
+        catch { showToast(url); }
+      });
+      $('#access-toggle').addEventListener('click',async() => { try { await api('/api/host/invite-access'); } catch(error) { showToast(error.message,true); } });
+      $('#pause-toggle').addEventListener('click',async() => { try { await api('/api/host/pause'); } catch(error) { showToast(error.message,true); } });
+      $('#half').addEventListener('click',() => { $('#bet-amount').value=Math.max(1,Math.floor(Number($('#bet-amount').value)/2)); });
+      $('#double').addEventListener('click',() => { $('#bet-amount').value=Math.min(10000,Number($('#bet-amount').value)*2); });
+      $('#bet-button').addEventListener('click',async() => {
+        try { await api('/api/bet',{amount:Number($('#bet-amount').value),autoCashout:Number($('#auto-collect').value)}); state.betPlaced=true; $('#bet-button').textContent='Bet placed'; showToast('You are in the next round.'); }
+        catch(error) { showToast(error.message,true); }
+      });
+      $('#cashout-button').addEventListener('click',async() => {
+        try { const result=await api('/api/cashout'); $('#cashout-button').hidden=true; showToast(`Collected ${format(result.score)} play coins at ${result.multiplier.toFixed(2)}×.`); }
+        catch(error) { showToast(error.message,true); }
+      });
+      $('#request-button').addEventListener('click',() => { $('#request-error').textContent=''; $('#request-modal').classList.add('open'); });
+      $('#cancel-request').addEventListener('click',() => $('#request-modal').classList.remove('open'));
+      $('#request-form').addEventListener('submit',async(event) => {
+        event.preventDefault(); $('#request-error').textContent='';
+        try { await api('/api/coin-request',{amount:Number($('#request-amount').value)}); state.requestPending=true; $('#request-modal').classList.remove('open'); $('#request-button').textContent='Request sent · waiting for host'; $('#request-button').disabled=true; showToast('Coin request sent to the host.'); }
+        catch(error) { $('#request-error').textContent=error.message; }
+      });
+      $('#room').addEventListener('click',(event) => {
+        if (event.target === $('#room')) return;
+      });
+      refreshState().catch(() => {});
+      const source = new EventSource('/events');
+      source.addEventListener('room',(event) => {
+        const data=JSON.parse(event.data);
+        if (data.room) { $('#room-name-top').textContent=data.room.name; $('#room-code-top').textContent=data.room.code; $('#room-code').value=data.room.code; }
+      });
+    })();
+  </script>
+</body>
+</html>
+
